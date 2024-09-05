@@ -1,10 +1,10 @@
--- src/invader.lua
+local anim8 = require("libs.anim8");
 
 local invader = {}
 invader.list = {}
 -- Create a new hostile invader
 function invader.new()
-    table.insert(invader.list, {
+    local newInvader = {
         x = math.random(100,400),
         y = math.random(100,400),
         width = 20,
@@ -12,8 +12,12 @@ function invader.new()
         speed = 2,
         attack = math.random(1, 10),
         isHostile = true,
-        minDistToMoveAway = math.random(50, 100)
-    })
+        minDistToMoveAway = math.random(50, 100),
+        animation = {
+            default = anim8.newAnimation(invader.grid('1-3',1), 0.5)
+        }
+    }
+    table.insert(invader.list, newInvader)
 end
 
 -- Calculate distance between two points
@@ -49,21 +53,22 @@ function invader.moveToPlayer(inv, player)
     local dist = distance(inv.x, inv.y, player.x, player.y)
 
     -- Normalize direction vector
-    if (dist > 0) then
+    if (dist >= 0) then
         dx = dx / dist
         dy = dy / dist
     end
 
     -- Update invader position near to player
-    if (dist > 0 and dist < inv.minDistToMoveAway) then
+    if (dist >= 0 and dist < inv.minDistToMoveAway) then
         inv.x = inv.x - dx * inv.speed
         inv.y = inv.y - dy * inv.speed
     end
 end
 
 -- Update invader's behavior
-function invader.update()
+function invader.update(dt)
     for index, inv in ipairs(invader.list) do
+            inv.animation.default:update(dt)
         if inv.isHostile then
             if inv.attack < Player.attack then
                 invader.moveAwayFromPlayer(inv, Player)
@@ -74,13 +79,16 @@ function invader.update()
     end
 end
 
+function invader.load()
+    invader.spriteSheet = love.graphics.newImage("assets/sprites/invader.png")
+    invader.grid = anim8.newGrid(32,32, invader.spriteSheet:getWidth(), invader.spriteSheet:getHeight())
+    
+end
+
 -- Draw the invader
 function invader.draw()
     for index, inv in ipairs(invader.list) do
-        love.graphics.setColor(1, 1, 0) -- Hostile invaders in red
-        love.graphics.rectangle("fill", inv.x, inv.y, inv.width, inv.height)
-        love.graphics.setColor(0, 0, 0) -- Hostile invaders in red
-        love.graphics.print(inv.attack, inv.x, inv.y)
+        inv.animation.default:draw(invader.spriteSheet, inv.x, inv.y, nil, 1.5)
     end
 end
 
